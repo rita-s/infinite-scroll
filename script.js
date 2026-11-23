@@ -1,46 +1,60 @@
 const imageContainer = document.getElementById('image-container');
 const loader = document.getElementById('loader');
 
-let photosArray = [];
-
-// Unsplash API
 const count = 30;
-const apiKey = 'API_KEY';
-const apiUrl = `https://api.unsplash.com/photos/random?client_id=${apiKey}&count=${count}`;
+let page = Math.floor(Math.random() * 30) + 1;
+let ready = false;
+let imagesLoaded = 0;
+let totalImages = 0;
 
+function imageLoaded() {
+    imagesLoaded++;
+    if (imagesLoaded === totalImages) {
+        ready = true;
+        loader.hidden = true;
+    }
+}
 
-// Create Elements for links and photos and add to DOM
-
-function displayPhotos(){
-    // Run function for each object in photosArray
-    photosArray.forEach((photo) => {
-        // Create <a> to link to Unsplash
+function displayPhotos(photos) {
+    imagesLoaded = 0;
+    totalImages = photos.length;
+    photos.forEach((photo) => {
         const item = document.createElement('a');
-        item.setAttribute('href', photo.links.html);
+        item.setAttribute('href', photo.url);
         item.setAttribute('target', '_blank');
+        item.setAttribute('rel', 'noopener');
 
-        // Create <img> to link to Unsplash
         const img = document.createElement('img');
-        img.setAttribute('src', photo.urls.regular);
-        img.setAttribute('alt', photo.alt_description);
-        img.setAttribute('title', photo.alt_description);
+        img.setAttribute('src', `https://picsum.photos/id/${photo.id}/1080/720`);
+        img.setAttribute('alt', `Photo by ${photo.author}`);
+        img.setAttribute('title', `Photo by ${photo.author}`);
+        img.setAttribute('loading', 'lazy');
+        img.addEventListener('load', imageLoaded);
+        img.addEventListener('error', imageLoaded);
 
-        // Put <img> inside <a>, then put both inside imageContainer
         item.appendChild(img);
         imageContainer.appendChild(item);
     });
 }
 
-// Get photos from Unsplash API
-async function getPhotos(){
-    try{
-        const response = await fetch(apiUrl);
-        photosArray = await response.json();
-        displayPhotos();
-    }catch (error){
-        //Catch error here
+async function getPhotos() {
+    ready = false;
+    loader.hidden = false;
+    try {
+        const response = await fetch(`https://picsum.photos/v2/list?page=${page}&limit=${count}`);
+        const photos = await response.json();
+        page++;
+        displayPhotos(photos);
+    } catch (error) {
+        loader.hidden = true;
+        ready = true;
     }
 }
 
-// On Load
+window.addEventListener('scroll', () => {
+    if (ready && window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
+        getPhotos();
+    }
+});
+
 getPhotos();
